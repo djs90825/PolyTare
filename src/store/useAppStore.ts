@@ -19,8 +19,13 @@ export interface AssetTelemetry {
   textures: TextureTelemetry[];
 }
 
+export interface OptimisedMetrics {
+  polyCount: number;
+  drawCalls: number;
+}
+
 export interface OptimisationSettings {
-  meshSimplificationRatio: number; // 0.0 to 1.0 (e.g., 0.5 means reduce vertices by 50%)
+  meshSimplificationRatio: number;
   weldVertices: boolean;
   compressDraco: boolean;
   resizeTexturesMax: 512 | 1024 | 2048 | 4096;
@@ -28,30 +33,25 @@ export interface OptimisationSettings {
 }
 
 interface AppState {
-  // Loading and Process Lifecycle States
   isProcessing: boolean;
   processingProgress: number;
   processingStage: 'idle' | 'parsing' | 'optimising_geometry' | 'compressing_textures' | 'packing_draco' | 'finalising';
   
-  // Active File Ingestion Blobs
   sourceFile: File | null;
   activeModelUrl: string | null;
   optimisedModelBlob: Blob | null;
   optimisedModelUrl: string | null;
   
-  // Analytical Metrics
   telemetry: AssetTelemetry | null;
+  optimisedMetrics: OptimisedMetrics | null;
   
-  // Pipeline Modifiers
   settings: OptimisationSettings;
-  
-  // Viewport Settings
   heatmapModeActive: boolean;
 
-  // Actions / State Mutations
   setSourceFile: (file: File) => void;
   setActiveModelUrl: (url: string | null) => void;
-  setOptimisedAsset: (blob: Blob, url: string) => void;
+  setOptimisedAsset: (blob: Blob, url: string, metrics: OptimisedMetrics) => void;
+  discardOptimisation: () => void;
   setTelemetry: (metrics: AssetTelemetry | null) => void;
   updateSettings: (modifiers: Partial<OptimisationSettings>) => void;
   setProcessingState: (isProcessing: boolean, stage: AppState['processingStage'], progress?: number) => void;
@@ -60,7 +60,7 @@ interface AppState {
 }
 
 const defaultSettings: OptimisationSettings = {
-  meshSimplificationRatio: 1.0, // Retain 100% geometry by default
+  meshSimplificationRatio: 1.0,
   weldVertices: true,
   compressDraco: false,
   resizeTexturesMax: 2048,
@@ -76,15 +76,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   optimisedModelBlob: null,
   optimisedModelUrl: null,
   telemetry: null,
+  optimisedMetrics: null,
   settings: defaultSettings,
   heatmapModeActive: false,
 
   setSourceFile: (file: File) => {
-    // Prevent memory leaks by cleaning up older object URLs prior to establishing new file references
-    const currentUrl = get().activeModelUrl;
-    const currentOptimisedUrl = get().optimisedModelUrl;
-    if (currentUrl) URL.revokeObjectURL(currentUrl);
-    if (currentOptimisedUrl) URL.revokeObjectURL(currentOptimisedUrl);
+    const { activeModelUrl, optimisedModelUrl } = get();
+    if (activeModelUrl) URL.revokeObjectURL(activeModelUrl);
+    if (optimisedModelUrl) URL.revokeObjectURL(optimisedModelUrl);
 
     set({
       sourceFile: file,
@@ -92,16 +91,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       optimisedModelBlob: null,
       optimisedModelUrl: null,
       telemetry: null,
+      optimisedMetrics: null,
     });
   },
 
   setActiveModelUrl: (url: string | null) => set({ activeModelUrl: url }),
 
-  setOptimisedAsset: (blob: Blob, url: string) => set((state) => ({
+  setOptimisedAsset: (blob: Blob, url: string, metrics: OptimisedMetrics) => set((state) => ({
     optimisedModelBlob: blob,
     optimisedModelUrl: url,
+    optimisedMetrics: metrics,
     telemetry: state.telemetry ? { ...state.telemetry, fileSizeOptimised: blob.size } : null
   })),
+
+  discardOptimisation: () => {
+    const { optimisedModelUrl } = get();
+    if (optimisedModelUrl) URL.revokeObjectURL(optimisedModelUrl);
+    set((state) => ({
+      optimisedModelBlob: null,
+      optimisedModelUrl: null,
+      optimisedMetrics: null,
+      telemetry: state.telemetry ? { ...state.telemetry, fileSizeOptimised: undefined } : null
+    }));
+  },
 
   setTelemetry: (metrics: AssetTelemetry | null) => set({ telemetry: metrics }),
 
@@ -131,6 +143,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       optimisedModelBlob: null,
       optimisedModelUrl: null,
       telemetry: null,
+      optimisedMetrics: null,
       settings: defaultSettings,
       heatmapModeActive: false,
     });
