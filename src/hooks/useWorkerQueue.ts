@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import OptimisationWorker from '../core/optimisation/worker?worker';
 
 export function useWorkerQueue() {
   const sourceFile = useAppStore((state) => state.sourceFile);
@@ -14,9 +15,9 @@ export function useWorkerQueue() {
 
     setProcessingState(true, 'parsing', 0);
 
-    // Instantiate the Web Worker using Vite's native URL resolution
+    // Instantiate the worker using Vite's robust compilation syntax
     if (!workerRef.current) {
-      workerRef.current = new Worker(new URL('../core/optimisation/worker.ts', import.meta.url), { type: 'module' });
+      workerRef.current = new OptimisationWorker();
     }
 
     workerRef.current.onmessage = (event: MessageEvent) => {
@@ -35,9 +36,10 @@ export function useWorkerQueue() {
       }
     };
 
-    // Extract the raw ArrayBuffer and transfer ownership to the background thread
+    // Extract the raw ArrayBuffer and immediately transfer ownership to the background thread
+    // The [arrayBuffer] argument guarantees zero-copy memory offloading
     const arrayBuffer = await sourceFile.arrayBuffer();
-    workerRef.current.postMessage({ fileBuffer: arrayBuffer, settings });
+    workerRef.current.postMessage({ fileBuffer: arrayBuffer, settings }, [arrayBuffer]);
 
   }, [sourceFile, settings, setProcessingState, setOptimisedAsset]);
 
