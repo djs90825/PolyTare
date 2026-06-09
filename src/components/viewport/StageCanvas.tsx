@@ -5,11 +5,16 @@ import { useAppStore } from '../../store/useAppStore';
 import ModelRenderer from './ModelRenderer';
 
 export default function StageCanvas(): React.ReactElement {
+  // We track both the original and optimised URLs. 
+  // If the optimised one exists, we render that. Otherwise, we render the original.
   const activeModelUrl = useAppStore((state) => state.activeModelUrl);
+  const optimisedModelUrl = useAppStore((state) => state.optimisedModelUrl);
+  
+  const currentRenderUrl = optimisedModelUrl || activeModelUrl;
 
   return (
     <div className="w-full h-full relative bg-slate-950">
-      {activeModelUrl ? (
+      {currentRenderUrl ? (
         <Canvas
           gl={{ 
             antialias: true, 
@@ -18,7 +23,6 @@ export default function StageCanvas(): React.ReactElement {
           }}
           camera={{ fov: 45, position: [0, 0, 5] }}
         >
-          {/* Subtle ambient lighting environment targeting zero operational cost */}
           <ambientLight intensity={0.2} />
           
           <Suspense fallback={null}>
@@ -29,7 +33,13 @@ export default function StageCanvas(): React.ReactElement {
               shadows={false}
             >
               <Center>
-                <ModelRenderer url={activeModelUrl} />
+                {/* CRITICAL ARCHITECTURE FIX: 
+                  By using currentRenderUrl as the key, we force React to destroy the old 
+                  ModelRenderer instance and create a brand new one when the URL changes. 
+                  This prevents WebGL context crashes when swapping from the heavy original 
+                  model to the compressed optimised model.
+                */}
+                <ModelRenderer key={currentRenderUrl} url={currentRenderUrl} />
               </Center>
             </Stage>
           </Suspense>
