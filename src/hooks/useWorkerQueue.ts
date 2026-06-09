@@ -15,19 +15,18 @@ export function useWorkerQueue() {
 
     setProcessingState(true, 'parsing', 0);
 
-    // Instantiate the worker using Vite's robust compilation syntax
     if (!workerRef.current) {
       workerRef.current = new OptimisationWorker();
     }
 
     workerRef.current.onmessage = (event: MessageEvent) => {
-      const { status, stage, progress, blob, error } = event.data;
+      const { status, stage, progress, blob, metrics, error } = event.data;
 
       if (status === 'progress') {
         setProcessingState(true, stage, progress);
       } else if (status === 'complete') {
         const url = URL.createObjectURL(blob);
-        setOptimisedAsset(blob, url);
+        setOptimisedAsset(blob, url, metrics); // Inject new metrics here
         setProcessingState(false, 'idle', 100);
       } else if (status === 'error') {
         console.error('PolyTare Architecture Error: Worker Thread Execution Failed.', error);
@@ -36,8 +35,6 @@ export function useWorkerQueue() {
       }
     };
 
-    // Extract the raw ArrayBuffer and immediately transfer ownership to the background thread
-    // The [arrayBuffer] argument guarantees zero-copy memory offloading
     const arrayBuffer = await sourceFile.arrayBuffer();
     workerRef.current.postMessage({ fileBuffer: arrayBuffer, settings }, [arrayBuffer]);
 
