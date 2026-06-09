@@ -1,1 +1,8 @@
 PolyTare_Roadmap.pdf
+npm install three @react-three/fiber @react-three/drei zustand @gltf-transform/core @gltf-transform/extensions @gltf-transform/functions
+
+npm install -D tailwindcss postcss autoprefixer typescript @types/three
+
+
+
+I just ran these commands after building the full project structure as you requested, Its exactly as you described it to be.
