@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { WebIO } from '@gltf-transform/core';
 import { KHRONOS_EXTENSIONS } from '@gltf-transform/extensions';
 import { useAppStore, AssetTelemetry, TextureTelemetry } from '../store/useAppStore';
@@ -7,9 +7,19 @@ export function useAssetAudit(): void {
   const sourceFile = useAppStore((state) => state.sourceFile);
   const setTelemetry = useAppStore((state) => state.setTelemetry);
   const setProcessingState = useAppStore((state) => state.setProcessingState);
+  
+  // Prevent duplicate audit runs on strict mode remounts
+  const processedFileRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!sourceFile) return;
+    if (!sourceFile) {
+      processedFileRef.current = null;
+      return;
+    }
+
+    // Skip if we already processed this exact file instance
+    if (processedFileRef.current === sourceFile.name + sourceFile.size) return;
+    processedFileRef.current = sourceFile.name + sourceFile.size;
 
     const auditAsset = async () => {
       setProcessingState(true, 'parsing', 0);
@@ -17,7 +27,6 @@ export function useAssetAudit(): void {
       try {
         const arrayBuffer = await sourceFile.arrayBuffer();
         
-        // Initialise the parser with Khronos Group standard extensions
         const io = new WebIO().registerExtensions(KHRONOS_EXTENSIONS);
         const document = await io.readBinary(new Uint8Array(arrayBuffer));
         
@@ -30,7 +39,6 @@ export function useAssetAudit(): void {
         let verticesCount = 0;
         let drawCalls = 0;
 
-        // Traverse the geometry graph to count render-blocking primitives
         meshes.forEach((mesh) => {
           mesh.listPrimitives().forEach((prim) => {
             drawCalls += 1;
@@ -49,7 +57,6 @@ export function useAssetAudit(): void {
           });
         });
 
-        // Audit memory footprint of embedded textures
         const textureTelemetry: TextureTelemetry[] = textures.map((tex) => {
           const image = tex.getImage();
           const size = image ? image.byteLength : 0;
@@ -76,7 +83,6 @@ export function useAssetAudit(): void {
           textures: textureTelemetry
         };
 
-        // Inject telemetry into the global UI state
         setTelemetry(telemetry);
       } catch (error) {
         console.error("PolyTare Architecture Error: Failed to parse GLTF binary stream.", error);
