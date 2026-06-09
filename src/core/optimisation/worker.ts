@@ -11,7 +11,6 @@ interface OptimisationPayload {
   };
 }
 
-// Enforce strict typing for the isolated background thread scope
 const _self = self as unknown as Worker;
 
 _self.onmessage = async (event: MessageEvent<OptimisationPayload>) => {
@@ -19,7 +18,6 @@ _self.onmessage = async (event: MessageEvent<OptimisationPayload>) => {
     const { fileBuffer, settings } = event.data;
 
     _self.postMessage({ status: 'progress', stage: 'parsing', progress: 10 });
-
     await MeshoptSimplifier.ready;
 
     const io = new WebIO().registerExtensions(KHRONOS_EXTENSIONS);
@@ -43,10 +41,31 @@ _self.onmessage = async (event: MessageEvent<OptimisationPayload>) => {
 
     _self.postMessage({ status: 'progress', stage: 'finalising', progress: 90 });
 
+    // Extract the post-compression telemetry
+    let polyCount = 0;
+    let drawCalls = 0;
+    const root = document.getRoot();
+    root.listMeshes().forEach((mesh) => {
+      mesh.listPrimitives().forEach((prim) => {
+        drawCalls += 1;
+        const indices = prim.getIndices();
+        const position = prim.getAttribute('POSITION');
+        if (indices) {
+          polyCount += indices.getCount() / 3;
+        } else if (position) {
+          polyCount += position.getCount() / 3;
+        }
+      });
+    });
+
     const glbUint8Array = await io.writeBinary(document);
     const optimisedBlob = new Blob([glbUint8Array], { type: 'model/gltf-binary' });
 
-    _self.postMessage({ status: 'complete', blob: optimisedBlob });
+    _self.postMessage({ 
+      status: 'complete', 
+      blob: optimisedBlob, 
+      metrics: { polyCount: Math.round(polyCount), drawCalls } 
+    });
   } catch (error: any) {
     _self.postMessage({ status: 'error', error: error.message || 'Unknown WASM Pipeline Error' });
   }
