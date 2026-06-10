@@ -217,6 +217,16 @@ export default function App(): React.ReactElement {
           )}
         </div>
       </aside>
+      
+    <div className="mt-6 pt-6 border-t border-slate-800">
+    <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+        <h4 className="text-sm font-bold text-white mb-1">Unlock Batch Processing</h4>
+        <p className="text-[10px] text-slate-400 mb-3">Drag entire folders and bulk-optimise assets for your CI/CD pipeline.</p>
+        <button className="w-full py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-400 text-xs font-bold rounded hover:bg-emerald-500 hover:text-slate-950 transition-all">
+        Upgrade to Pro (£29)
+        </button>
+    </div>
+    </div>
 
       {/* R3F High-Performance Viewport */}
       <main className="flex-1 relative bg-[#020617] shadow-inner shadow-black/50">
