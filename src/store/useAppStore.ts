@@ -45,89 +45,81 @@ interface AppState {
   telemetry: AssetTelemetry | null;
   optimisedMetrics: OptimisedMetrics | null;
   
-  settings: OptimisationSettings;
   heatmapModeActive: boolean;
+  settings: OptimisationSettings;
+  
+  cameraTarget: [number, number, number];
 
-  setSourceFile: (file: File) => void;
-  setActiveModelUrl: (url: string | null) => void;
-  setOptimisedAsset: (blob: Blob, url: string, metrics: OptimisedMetrics) => void;
-  discardOptimisation: () => void;
-  setTelemetry: (metrics: AssetTelemetry | null) => void;
-  updateSettings: (modifiers: Partial<OptimisationSettings>) => void;
+  // Actions
+  setSourceFile: (file: File | null) => void;
   setProcessingState: (isProcessing: boolean, stage: AppState['processingStage'], progress?: number) => void;
+  setTelemetry: (metrics: AssetTelemetry | null) => void;
+  setOptimisedData: (blob: Blob, url: string, metrics: OptimisedMetrics) => void;
+  updateSettings: (modifiers: Partial<OptimisationSettings>) => void;
   toggleHeatmapMode: () => void;
+  discardOptimisation: () => void;
   resetAppState: () => void;
+  setCameraTarget: (target: [number, number, number]) => void;
+  resetCameraTarget: () => void;
 }
-
-const defaultSettings: OptimisationSettings = {
-  meshSimplificationRatio: 1.0,
-  weldVertices: true,
-  compressDraco: false,
-  resizeTexturesMax: 2048,
-  convertTexturesToWebP: true,
-};
 
 export const useAppStore = create<AppState>((set, get) => ({
   isProcessing: false,
   processingProgress: 0,
   processingStage: 'idle',
+  
   sourceFile: null,
   activeModelUrl: null,
   optimisedModelBlob: null,
   optimisedModelUrl: null,
+  
   telemetry: null,
   optimisedMetrics: null,
-  settings: defaultSettings,
+  
   heatmapModeActive: false,
-
-  setSourceFile: (file: File) => {
-    const { activeModelUrl, optimisedModelUrl } = get();
-    if (activeModelUrl) URL.revokeObjectURL(activeModelUrl);
-    if (optimisedModelUrl) URL.revokeObjectURL(optimisedModelUrl);
-
-    set({
-      sourceFile: file,
-      activeModelUrl: URL.createObjectURL(file),
-      optimisedModelBlob: null,
-      optimisedModelUrl: null,
-      telemetry: null,
-      optimisedMetrics: null,
-    });
+  settings: {
+    meshSimplificationRatio: 0.5,
+    weldVertices: true,
+    compressDraco: true,
+    resizeTexturesMax: 2048,
+    convertTexturesToWebP: true,
   },
+  
+  cameraTarget: [0, 0, 0],
 
-  setActiveModelUrl: (url: string | null) => set({ activeModelUrl: url }),
+  setSourceFile: (file) => set({ sourceFile: file }),
 
-  setOptimisedAsset: (blob: Blob, url: string, metrics: OptimisedMetrics) => set((state) => ({
-    optimisedModelBlob: blob,
-    optimisedModelUrl: url,
-    optimisedMetrics: metrics,
-    telemetry: state.telemetry ? { ...state.telemetry, fileSizeOptimised: blob.size } : null
-  })),
-
-  discardOptimisation: () => {
-    const { optimisedModelUrl } = get();
-    if (optimisedModelUrl) URL.revokeObjectURL(optimisedModelUrl);
-    set((state) => ({
-      optimisedModelBlob: null,
-      optimisedModelUrl: null,
-      optimisedMetrics: null,
-      telemetry: state.telemetry ? { ...state.telemetry, fileSizeOptimised: undefined } : null
-    }));
-  },
-
-  setTelemetry: (metrics: AssetTelemetry | null) => set({ telemetry: metrics }),
-
-  updateSettings: (modifiers: Partial<OptimisationSettings>) => set((state) => ({
-    settings: { ...state.settings, ...modifiers }
-  })),
-
-  setProcessingState: (isProcessing: boolean, stage: AppState['processingStage'], progress: number = 0) => set({
+  setProcessingState: (isProcessing, stage, progress = 0) => set({
     isProcessing,
     processingStage: stage,
     processingProgress: progress
   }),
 
+  setTelemetry: (metrics) => set({ telemetry: metrics }),
+
+  setOptimisedData: (blob, url, metrics) => set({
+    optimisedModelBlob: blob,
+    optimisedModelUrl: url,
+    optimisedMetrics: metrics,
+    isProcessing: false,
+    processingStage: 'idle'
+  }),
+
+  updateSettings: (modifiers) => set((state) => ({
+    settings: { ...state.settings, ...modifiers }
+  })),
+
   toggleHeatmapMode: () => set((state) => ({ heatmapModeActive: !state.heatmapModeActive })),
+
+  discardOptimisation: () => {
+    const { optimisedModelUrl } = get();
+    if (optimisedModelUrl) URL.revokeObjectURL(optimisedModelUrl);
+    set({
+      optimisedModelBlob: null,
+      optimisedModelUrl: null,
+      optimisedMetrics: null,
+    });
+  },
 
   resetAppState: () => {
     const { activeModelUrl, optimisedModelUrl } = get();
@@ -144,8 +136,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       optimisedModelUrl: null,
       telemetry: null,
       optimisedMetrics: null,
-      settings: defaultSettings,
-      heatmapModeActive: false,
+      cameraTarget: [0, 0, 0],
     });
-  }
+  },
+
+  setCameraTarget: (target) => set({ cameraTarget: target }),
+  
+  resetCameraTarget: () => set({ cameraTarget: [0, 0, 0] }),
 }));
