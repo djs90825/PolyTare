@@ -5,8 +5,6 @@ import { useAppStore } from '../../store/useAppStore';
 import ModelRenderer from './ModelRenderer';
 
 export default function StageCanvas(): React.ReactElement {
-  // We track both the original and optimised URLs. 
-  // If the optimised one exists, we render that. Otherwise, we render the original.
   const activeModelUrl = useAppStore((state) => state.activeModelUrl);
   const optimisedModelUrl = useAppStore((state) => state.optimisedModelUrl);
   
@@ -21,7 +19,9 @@ export default function StageCanvas(): React.ReactElement {
             powerPreference: "high-performance",
             preserveDrawingBuffer: true 
           }}
-          camera={{ fov: 45, position: [0, 0, 5] }}
+          // CRITICAL FIX: Increased the 'far' clipping plane from default 2000 to 100,000 
+          // to prevent massive architectural assets from clipping out of existence.
+          camera={{ fov: 45, position: [0, 0, 5], near: 0.1, far: 100000 }}
         >
           <ambientLight intensity={0.2} />
           
@@ -33,12 +33,6 @@ export default function StageCanvas(): React.ReactElement {
               shadows={false}
             >
               <Center>
-                {/* CRITICAL ARCHITECTURE FIX: 
-                  By using currentRenderUrl as the key, we force React to destroy the old 
-                  ModelRenderer instance and create a brand new one when the URL changes. 
-                  This prevents WebGL context crashes when swapping from the heavy original 
-                  model to the compressed optimised model.
-                */}
                 <ModelRenderer key={currentRenderUrl} url={currentRenderUrl} />
               </Center>
             </Stage>
@@ -48,8 +42,10 @@ export default function StageCanvas(): React.ReactElement {
             makeDefault 
             enableDamping 
             dampingFactor={0.05}
-            minDistance={0.5}
-            maxDistance={50}
+            minDistance={0.1}
+            // CRITICAL FIX: Removed the tight 50-unit constraint. 
+            // The camera can now pan back to view gigantic models.
+            maxDistance={100000} 
           />
         </Canvas>
       ) : (
