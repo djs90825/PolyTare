@@ -22,6 +22,8 @@ const Loader = () => (
 export default function StageCanvas(): React.ReactElement {
   const activeModelUrl = useAppStore((state) => state.activeModelUrl);
   const optimisedModelUrl = useAppStore((state) => state.optimisedModelUrl);
+  const cameraTarget = useAppStore((state) => state.cameraTarget);
+  
   const currentRenderUrl = optimisedModelUrl || activeModelUrl;
 
   return (
@@ -35,14 +37,12 @@ export default function StageCanvas(): React.ReactElement {
               toneMapping: THREE.NoToneMapping, 
               outputColorSpace: THREE.SRGBColorSpace 
             }}
-            camera={{ fov: 45, near: 0.5, far: 100000 }} 
+            camera={{ fov: 45, near: 0.1, far: 100000 }} 
             dpr={[1, 2]}
             className="w-full h-full outline-none"
           >
             <color attach="background" args={['#202531']} />
-
             <Sky sunPosition={[100, 10, 100]} turbidity={0.1} rayleigh={0.01} />
-            
             <ambientLight intensity={0.4} color="#ffffff" />
             <directionalLight position={[10, 10, 5]} intensity={0.5} color="#ffffff" />
             
@@ -56,6 +56,7 @@ export default function StageCanvas(): React.ReactElement {
 
             <OrbitControls 
               makeDefault 
+              target={new THREE.Vector3(...cameraTarget)}
               enableDamping 
               dampingFactor={0.05}
               maxDistance={50000} 
@@ -63,14 +64,11 @@ export default function StageCanvas(): React.ReactElement {
             />
           </Canvas>
 
-          {/* ARCHITECTURAL FIX: Non-intrusive environmental lighting disclaimer */}
+          {/* Lighting/Disclaimer warning */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10">
             <div className="bg-slate-950/80 backdrop-blur-sm border border-amber-500/30 text-amber-500/80 px-4 py-2 rounded-md shadow-lg flex items-center gap-2 max-w-lg">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
               <span className="text-[10px] font-medium tracking-wide uppercase">
-                Warning: Light, shadow, and shading accuracy may vary relative to individual target engine environment settings.
+                WARNING: Light, shadow, and shading may not appear as they do in your development due to individual project settings.
               </span>
             </div>
           </div>
