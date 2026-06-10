@@ -152,23 +152,23 @@ export default function App(): React.ReactElement {
                   {telemetry ? (
                     <div className="space-y-4">
                       <div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Source File</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Source File</div>
                         <div className="text-sm font-medium truncate" title={telemetry.fileName}>{telemetry.fileName}</div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-900 p-3 rounded-lg border border-slate-800/50">
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Geometry</div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Geometry</div>
                           <div className="text-lg font-black text-slate-200 mt-1">{telemetry.polyCount.toLocaleString()} <span className="text-xs font-normal text-slate-500">tris</span></div>
                         </div>
                         <div className="bg-slate-900 p-3 rounded-lg border border-slate-800/50">
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Draw Calls</div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Draw Calls</div>
                           <div className="text-lg font-black text-amber-400 mt-1">{telemetry.drawCalls}</div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-800/50">
-                         <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Source Weight</div>
+                         <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Source Weight</div>
                          <div className="text-sm font-black text-slate-200">{formatBytes(telemetry.fileSizeRaw)}</div>
                       </div>
                     </div>
@@ -206,7 +206,7 @@ export default function App(): React.ReactElement {
                       max="1.0"
                       step="0.05"
                       value={settings.meshSimplificationRatio}
-                      onChange={(e) => updateSettings({ meshSimplificationRatio: parseFloat(e.value) })}
+                      onChange={(e) => updateSettings({ meshSimplificationRatio: parseFloat(e.target.value) })}
                       className="w-full accent-emerald-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
                     />
                   </div>
