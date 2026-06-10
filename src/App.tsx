@@ -4,6 +4,8 @@ import { useAssetAudit } from './hooks/useAssetAudit';
 import { useWorkerQueue } from './hooks/useWorkerQueue';
 import StageCanvas from './components/viewport/StageCanvas';
 import { formatBytes } from './utils/fileHelpers';
+import ProModal from './components/ui/ProModal';
+import { useState } from 'react';
 
 export default function App(): React.ReactElement {
   useAssetAudit();
@@ -24,7 +26,7 @@ export default function App(): React.ReactElement {
     discardOptimisation,
     resetAppState
   } = useAppStore();
-
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileDrop = (event: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +61,8 @@ export default function App(): React.ReactElement {
   const sizeReductionPercentage = (telemetry && telemetry.fileSizeOptimised) 
     ? Math.round((1 - (telemetry.fileSizeOptimised / telemetry.fileSizeRaw)) * 100) 
     : 0;
+
+  <ProModal isOpen={isProModalOpen} onClose={() => setIsProModalOpen(false)} />
 
   return (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-50 font-sans overflow-hidden">
@@ -217,13 +221,16 @@ export default function App(): React.ReactElement {
           )}
         </div>
       </aside>
-      
+
     <div className="mt-6 pt-6 border-t border-slate-800">
     <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-        <h4 className="text-sm font-bold text-white mb-1">Unlock Batch Processing</h4>
-        <p className="text-[10px] text-slate-400 mb-3">Drag entire folders and bulk-optimise assets for your CI/CD pipeline.</p>
-        <button className="w-full py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-400 text-xs font-bold rounded hover:bg-emerald-500 hover:text-slate-950 transition-all">
-        Upgrade to Pro (£29)
+        <h4 className="text-sm font-bold text-white mb-1">PolyTare Pro</h4>
+        <p className="text-[10px] text-slate-400 mb-3">Scale your pipeline with batch processing and CI/CD tools.</p>
+        <button 
+        onClick={() => setIsProModalOpen(true)}
+        className="w-full py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-400 text-xs font-bold rounded hover:bg-emerald-500 hover:text-slate-950 transition-all"
+        >
+        Pro Version Coming Soon (£20/mo)
         </button>
     </div>
     </div>
