@@ -7,11 +7,11 @@ export class ErrorBoundary extends Component<Props, State> {
   public state: State = { hasError: false };
 
   public static getDerivedStateFromError(_: Error): State {
+    // Only trigger boundary on actual render failures
     return { hasError: true };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // This logs the specific error triggering the boundary
     console.error("PolyTare Viewport Boundary Caught Error:", error, errorInfo);
   }
 
