@@ -20,13 +20,17 @@ export function useWorkerQueue() {
     }
 
     workerRef.current.onmessage = (event: MessageEvent) => {
-      const { status, stage, progress, blob, metrics, error } = event.data;
+      // Catch buffer instead of blob for zero-copy memory handling
+      const { status, stage, progress, buffer, metrics, error } = event.data;
 
       if (status === 'progress') {
         setProcessingState(true, stage, progress);
       } else if (status === 'complete') {
+        // Construct Blob on the main thread from the transferred buffer
+        const blob = new Blob([buffer], { type: 'model/gltf-binary' });
         const url = URL.createObjectURL(blob);
-        setOptimisedAsset(blob, url, metrics); // Inject new metrics here
+        
+        setOptimisedAsset(blob, url, metrics);
         setProcessingState(false, 'idle', 100);
       } else if (status === 'error') {
         console.error('PolyTare Architecture Error: Worker Thread Execution Failed.', error);
