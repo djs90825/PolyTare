@@ -1,16 +1,17 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { useAssetAudit } from './hooks/useAssetAudit';
 import { useWorkerQueue } from './hooks/useWorkerQueue';
 import StageCanvas from './components/viewport/StageCanvas';
 import { formatBytes } from './utils/fileHelpers';
 import ProModal from './components/ui/ProModal';
-import { useState } from 'react';
 
 export default function App(): React.ReactElement {
+  // Initialization of hooks
   useAssetAudit();
   const { startOptimisation } = useWorkerQueue();
   
+  // State orchestration
   const { 
     sourceFile, 
     setSourceFile, 
@@ -26,9 +27,11 @@ export default function App(): React.ReactElement {
     discardOptimisation,
     resetAppState
   } = useAppStore();
+
   const [isProModalOpen, setIsProModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // File handling
   const handleFileDrop = (event: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     let file: File | null = null;
@@ -62,13 +65,13 @@ export default function App(): React.ReactElement {
     ? Math.round((1 - (telemetry.fileSizeOptimised / telemetry.fileSizeRaw)) * 100) 
     : 0;
 
-  <ProModal isOpen={isProModalOpen} onClose={() => setIsProModalOpen(false)} />
-
   return (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-50 font-sans overflow-hidden">
-      {/* Structural Sidebar Controls */}
+      
+      {/* Sidebar Controls */}
       <aside className="w-[420px] bg-slate-900 border-r border-slate-800 flex flex-col z-10 shadow-2xl relative">
         <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+          
           <header className="mb-8 flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
@@ -78,7 +81,7 @@ export default function App(): React.ReactElement {
             </div>
             {sourceFile && (
               <button onClick={resetAppState} className="text-xs text-slate-500 hover:text-rose-400 transition-colors font-bold uppercase tracking-wider bg-slate-950 px-3 py-1.5 rounded-md border border-slate-800">
-                Start Fresh
+                Reset
               </button>
             )}
           </header>
@@ -99,7 +102,7 @@ export default function App(): React.ReactElement {
           ) : (
             <div className="space-y-6">
               
-              {/* Executive Summary Report (Shown only post-compression) */}
+              {/* Executive Summary Report */}
               {optimisedModelUrl && telemetry && optimisedMetrics && (
                 <div className="bg-emerald-950/20 p-5 rounded-xl border border-emerald-500/30 shadow-inner space-y-4">
                   <h3 className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
@@ -130,7 +133,6 @@ export default function App(): React.ReactElement {
                     <button
                       onClick={discardOptimisation}
                       className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-4 rounded-lg transition-all duration-200 uppercase tracking-wider text-xs"
-                      title="Discard and try different settings"
                     >
                       Undo
                     </button>
@@ -175,7 +177,7 @@ export default function App(): React.ReactElement {
                 </div>
               )}
 
-              {/* Viewport Actions */}
+              {/* Action Controls */}
               <button 
                 onClick={toggleHeatmapMode}
                 className={`w-full py-2.5 text-xs font-bold rounded-md transition-colors border ${
@@ -187,7 +189,7 @@ export default function App(): React.ReactElement {
                 {heatmapModeActive ? 'Disable Diagnostic Heatmap' : 'Visualise Density Heatmap'}
               </button>
 
-              {/* Engine Controls (Hidden while viewing an optimised model to force explicit review) */}
+              {/* Engine Control */}
               {!optimisedModelUrl && (
                 <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-inner space-y-5">
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-3">Decimation Parameters</h3>
@@ -217,28 +219,33 @@ export default function App(): React.ReactElement {
                   </button>
                 </div>
               )}
+
+              {/* Pro Section */}
+              <div className="mt-6 pt-6 border-t border-slate-800">
+                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                  <h4 className="text-sm font-bold text-white mb-1">PolyTare Pro</h4>
+                  <p className="text-[10px] text-slate-400 mb-3">Unlock batch processing, CI/CD integrations, and texture baking.</p>
+                  <button 
+                    onClick={() => setIsProModalOpen(true)}
+                    className="w-full py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-400 text-xs font-bold rounded hover:bg-emerald-500 hover:text-slate-950 transition-all"
+                  >
+                    Pro Version Coming Soon (£29.99/mo)
+                  </button>
+                </div>
+              </div>
+
             </div>
           )}
         </div>
       </aside>
 
-    <div className="mt-6 pt-6 border-t border-slate-800">
-    <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-        <h4 className="text-sm font-bold text-white mb-1">PolyTare Pro</h4>
-        <p className="text-[10px] text-slate-400 mb-3">Scale your pipeline with batch processing and CI/CD tools.</p>
-        <button 
-        onClick={() => setIsProModalOpen(true)}
-        className="w-full py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-400 text-xs font-bold rounded hover:bg-emerald-500 hover:text-slate-950 transition-all"
-        >
-        Pro Version Coming Soon (£20/mo)
-        </button>
-    </div>
-    </div>
-
-      {/* R3F High-Performance Viewport */}
+      {/* Viewport */}
       <main className="flex-1 relative bg-[#020617] shadow-inner shadow-black/50">
         <StageCanvas />
       </main>
+
+      {/* Modals */}
+      <ProModal isOpen={isProModalOpen} onClose={() => setIsProModalOpen(false)} />
     </div>
   );
 }
