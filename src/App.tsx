@@ -5,6 +5,7 @@ import { useWorkerQueue } from './hooks/useWorkerQueue';
 import StageCanvas from './components/viewport/StageCanvas';
 import { formatBytes } from './utils/fileHelpers';
 import ProModal from './components/ui/ProModal';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 export default function App(): React.ReactElement {
   // Initialization of hooks
@@ -205,7 +206,7 @@ export default function App(): React.ReactElement {
                       max="1.0"
                       step="0.05"
                       value={settings.meshSimplificationRatio}
-                      onChange={(e) => updateSettings({ meshSimplificationRatio: parseFloat(e.target.value) })}
+                      onChange={(e) => updateSettings({ meshSimplificationRatio: parseFloat(e.value) })}
                       className="w-full accent-emerald-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
                     />
                   </div>
@@ -239,9 +240,11 @@ export default function App(): React.ReactElement {
         </div>
       </aside>
 
-      {/* Viewport (Removed Error Boundary for now) */}
+      {/* Viewport wrapped in Error Boundary */}
       <main className="flex-1 relative bg-[#020617] shadow-inner shadow-black/50">
-        <StageCanvas />
+        <ErrorBoundary>
+          <StageCanvas />
+        </ErrorBoundary>
       </main>
 
       {/* Global Modals */}
