@@ -1,12 +1,11 @@
 import React, { Suspense } from 'react';
 import { Canvas, extend } from '@react-three/fiber';
-import { OrbitControls, Center, Html, Bounds, Environment } from '@react-three/drei';
+import { OrbitControls, Center, Html, Bounds, Sky } from '@react-three/drei';
 import { useAppStore } from '../../store/useAppStore';
 import ModelRenderer from './ModelRenderer';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import * as THREE from 'three';
 
-// Explicitly ensure Three namespace is bridged for R3F reconciliation
 extend(THREE);
 
 const Loader = () => (
@@ -23,7 +22,6 @@ const Loader = () => (
 export default function StageCanvas(): React.ReactElement {
   const activeModelUrl = useAppStore((state) => state.activeModelUrl);
   const optimisedModelUrl = useAppStore((state) => state.optimisedModelUrl);
-  
   const currentRenderUrl = optimisedModelUrl || activeModelUrl;
 
   return (
@@ -34,31 +32,19 @@ export default function StageCanvas(): React.ReactElement {
             gl={{ 
               antialias: true, 
               powerPreference: "high-performance",
-              // ARCHITECTURAL FIX: Exact Godot 4 Tone Mapping and Colour Space Parity
-              toneMapping: THREE.ACESFilmicToneMapping, 
-              toneMappingExposure: 1.0,
+              toneMapping: THREE.NoToneMapping, 
               outputColorSpace: THREE.SRGBColorSpace 
             }}
-            camera={{ fov: 45, near: 0.1, far: 100000 }} 
+            camera={{ fov: 45, near: 0.5, far: 100000 }} 
             dpr={[1, 2]}
             className="w-full h-full outline-none"
           >
-            {/* ARCHITECTURAL FIX: Godot 4 Default Inspector Background Colour */}
             <color attach="background" args={['#202531']} />
 
-            {/* Godot Parity Lighting Stack:
-              - A flat ambient light to lift shadows neutrally.
-              - A single directional sun positioned precisely where Godot places its default key light.
-            */}
-            <ambientLight color="#ffffff" intensity={0.4} />
-            <directionalLight position={[-5, 5, 5]} intensity={1.2} color="#ffffff" castShadow={false} />
+            <Sky sunPosition={[100, 10, 100]} turbidity={0.1} rayleigh={0.01} />
             
-            {/* ARCHITECTURAL FIX: HDRI Throttling
-              We use "city" as it mimics Godot's procedural sky (blue/grey gradients), 
-              but we drastically throttle the intensity. It will now only calculate 
-              PBR reflections (metals/roughness) without painting its own light onto the model.
-            */}
-            <Environment preset="city" environmentIntensity={0.15} />
+            <ambientLight intensity={0.4} color="#ffffff" />
+            <directionalLight position={[10, 10, 5]} intensity={0.5} color="#ffffff" />
             
             <Suspense fallback={<Loader />}>
               <Bounds fit clip observe margin={1.2}>
@@ -76,14 +62,22 @@ export default function StageCanvas(): React.ReactElement {
               minDistance={0.1}
             />
           </Canvas>
+
+          {/* ARCHITECTURAL FIX: Non-intrusive environmental lighting disclaimer */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10">
+            <div className="bg-slate-950/80 backdrop-blur-sm border border-amber-500/30 text-amber-500/80 px-4 py-2 rounded-md shadow-lg flex items-center gap-2 max-w-lg">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="text-[10px] font-medium tracking-wide uppercase">
+                Warning: Light, shadow, and shading accuracy may vary relative to individual target engine environment settings.
+              </span>
+            </div>
+          </div>
         </ErrorBoundary>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-950 select-none">
-          <svg className="w-12 h-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
           <p className="text-xs font-semibold tracking-widest uppercase">Viewport Context Idle</p>
-          <p className="text-[11px] text-slate-600 mt-1">Drop a .glb file to instantiate</p>
         </div>
       )}
     </div>
