@@ -59,13 +59,15 @@ _self.onmessage = async (event: MessageEvent<OptimisationPayload>) => {
     });
 
     const glbUint8Array = await io.writeBinary(document);
-    const optimisedBlob = new Blob([glbUint8Array], { type: 'model/gltf-binary' });
+    const buffer = glbUint8Array.buffer;
 
+    // Strict zero-copy memory transfer mapping
     _self.postMessage({ 
       status: 'complete', 
-      blob: optimisedBlob, 
+      buffer: buffer, 
       metrics: { polyCount: Math.round(polyCount), drawCalls } 
-    });
+    }, [buffer]);
+
   } catch (error: any) {
     _self.postMessage({ status: 'error', error: error.message || 'Unknown WASM Pipeline Error' });
   }
