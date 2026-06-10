@@ -33,7 +33,10 @@ export default function StageCanvas(): React.ReactElement {
               shadows={false}
             >
               <Center>
-                <ModelRenderer key={currentRenderUrl} url={currentRenderUrl} />
+                {/* Removed the `key={currentRenderUrl}` anti-pattern. 
+                  R3F manages the internal update seamlessly. Re-mounting causes lag. 
+                */}
+                <ModelRenderer url={currentRenderUrl} />
               </Center>
             </Stage>
           </Suspense>
