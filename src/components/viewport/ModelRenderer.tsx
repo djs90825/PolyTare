@@ -12,8 +12,9 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
   const { scene } = useGLTF(url);
   const heatmapModeActive = useAppStore((state) => state.heatmapModeActive);
 
-  // Maintain a reference to backup original materials for heatmap switching
+  // Maintain references to backup original materials and track custom ones for disposal
   const originalMaterialsMap = useRef<Map<string, any>>(new Map());
+  const heatmapMaterialsMap = useRef<Map<string, MeshStandardMaterial>>(new Map());
 
   useEffect(() => {
     if (!scene) return;
@@ -35,12 +36,19 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
           if (vertexCount > 50000) diagnosticColour = '#ef4444'; // Red (Critical)
           else if (vertexCount > 15000) diagnosticColour = '#f59e0b'; // Amber (Moderate)
 
-          object.material = new MeshStandardMaterial({
-            color: diagnosticColour,
-            wireframe: true,
-            roughness: 0.4,
-            metalness: 0.1
-          });
+          // Reuse existing heatmap material if previously generated to save GPU memory
+          let hmMaterial = heatmapMaterialsMap.current.get(object.uuid);
+          if (!hmMaterial) {
+            hmMaterial = new MeshStandardMaterial({
+              color: diagnosticColour,
+              wireframe: true,
+              roughness: 0.4,
+              metalness: 0.1
+            });
+            heatmapMaterialsMap.current.set(object.uuid, hmMaterial);
+          }
+
+          object.material = hmMaterial;
         } else {
           // Revert back to original look when Heatmap mode is turned off
           const originalMaterial = originalMaterialsMap.current.get(object.uuid);
@@ -52,10 +60,12 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
     });
   }, [scene, heatmapModeActive]);
 
-  // Clean up cache allocations when the model object modifications alter
+  // Clean up cache allocations and strictly dispose of custom materials to prevent GPU leaks
   useEffect(() => {
     return () => {
       originalMaterialsMap.current.clear();
+      heatmapMaterialsMap.current.forEach((material) => material.dispose());
+      heatmapMaterialsMap.current.clear();
     };
   }, [url]);
 
