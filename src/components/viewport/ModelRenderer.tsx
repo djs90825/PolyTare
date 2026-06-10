@@ -8,8 +8,8 @@ interface ModelRendererProps {
 }
 
 export default function ModelRenderer({ url }: ModelRendererProps): React.ReactElement {
-  // Fetch the scene graph using Drei's cached GLTF loader
-  const { scene } = useGLTF(url);
+  // Inject Draco decoder path explicitly. Essential for reading compressed source assets.
+  const { scene } = useGLTF(url, 'https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   const heatmapModeActive = useAppStore((state) => state.heatmapModeActive);
 
   // Maintain references to backup original materials and track custom ones for disposal
@@ -19,7 +19,6 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
   useEffect(() => {
     if (!scene) return;
 
-    // Cache original materials before applying any visual debug overrides
     scene.traverse((object: Object3D) => {
       if (object instanceof Mesh) {
         if (!originalMaterialsMap.current.has(object.uuid)) {
@@ -27,16 +26,13 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
         }
 
         if (heatmapModeActive) {
-          // Calculate a proxy vertex density representation for visual debugging
           const geometry = object.geometry;
           const vertexCount = geometry.attributes.position ? geometry.attributes.position.count : 0;
           
-          // Apply contrasting heatmap diagnostic colours based on relative complexity
           let diagnosticColour = '#10b981'; // Green (Optimised)
           if (vertexCount > 50000) diagnosticColour = '#ef4444'; // Red (Critical)
           else if (vertexCount > 15000) diagnosticColour = '#f59e0b'; // Amber (Moderate)
 
-          // Reuse existing heatmap material if previously generated to save GPU memory
           let hmMaterial = heatmapMaterialsMap.current.get(object.uuid);
           if (!hmMaterial) {
             hmMaterial = new MeshStandardMaterial({
@@ -50,7 +46,6 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
 
           object.material = hmMaterial;
         } else {
-          // Revert back to original look when Heatmap mode is turned off
           const originalMaterial = originalMaterialsMap.current.get(object.uuid);
           if (originalMaterial) {
             object.material = originalMaterial;
@@ -60,7 +55,6 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
     });
   }, [scene, heatmapModeActive]);
 
-  // Clean up cache allocations and strictly dispose of custom materials to prevent GPU leaks
   useEffect(() => {
     return () => {
       originalMaterialsMap.current.clear();
