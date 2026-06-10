@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas, extend } from '@react-three/fiber';
-import { OrbitControls, Stage, Center, Html } from '@react-three/drei';
+import { OrbitControls, Center, Html, Bounds, Environment } from '@react-three/drei';
 import { useAppStore } from '../../store/useAppStore';
 import ModelRenderer from './ModelRenderer';
 import ErrorBoundary from '../ui/ErrorBoundary';
@@ -27,30 +27,45 @@ export default function StageCanvas(): React.ReactElement {
   const currentRenderUrl = optimisedModelUrl || activeModelUrl;
 
   return (
-    <div className="w-full h-full relative bg-slate-950">
+    <div className="w-full h-full relative">
       {currentRenderUrl ? (
         <ErrorBoundary resetKey={currentRenderUrl}>
           <Canvas
-            gl={{ antialias: true, powerPreference: "high-performance" }}
+            gl={{ 
+              antialias: true, 
+              powerPreference: "high-performance",
+              // ARCHITECTURAL FIX: Exact Godot 4 Tone Mapping and Colour Space Parity
+              toneMapping: THREE.ACESFilmicToneMapping, 
+              toneMappingExposure: 1.0,
+              outputColorSpace: THREE.SRGBColorSpace 
+            }}
             camera={{ fov: 45, near: 0.1, far: 100000 }} 
             dpr={[1, 2]}
-            // Ensure no stray HTML tags slip into the canvas reconciliation
-            className="w-full h-full"
+            className="w-full h-full outline-none"
           >
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[10, 10, 5]} intensity={1} />
+            {/* ARCHITECTURAL FIX: Godot 4 Default Inspector Background Colour */}
+            <color attach="background" args={['#202531']} />
+
+            {/* Godot Parity Lighting Stack:
+              - A flat ambient light to lift shadows neutrally.
+              - A single directional sun positioned precisely where Godot places its default key light.
+            */}
+            <ambientLight color="#ffffff" intensity={0.4} />
+            <directionalLight position={[-5, 5, 5]} intensity={1.2} color="#ffffff" castShadow={false} />
+            
+            {/* ARCHITECTURAL FIX: HDRI Throttling
+              We use "city" as it mimics Godot's procedural sky (blue/grey gradients), 
+              but we drastically throttle the intensity. It will now only calculate 
+              PBR reflections (metals/roughness) without painting its own light onto the model.
+            */}
+            <Environment preset="city" environmentIntensity={0.15} />
             
             <Suspense fallback={<Loader />}>
-              <Stage
-                intensity={0.4}
-                environment="city"
-                adjustCamera={true}
-                shadows={false}
-              >
+              <Bounds fit clip observe margin={1.2}>
                 <Center>
                   <ModelRenderer url={currentRenderUrl} />
                 </Center>
-              </Stage>
+              </Bounds>
             </Suspense>
 
             <OrbitControls 
@@ -63,7 +78,7 @@ export default function StageCanvas(): React.ReactElement {
           </Canvas>
         </ErrorBoundary>
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 select-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-950 select-none">
           <svg className="w-12 h-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
