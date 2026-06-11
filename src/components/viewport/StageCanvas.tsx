@@ -27,24 +27,19 @@ export default function StageCanvas(): React.ReactElement {
   const currentRenderUrl = optimisedModelUrl || activeModelUrl;
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative bg-slate-950">
       {currentRenderUrl ? (
-        <ErrorBoundary resetKey={currentRenderUrl}>
+        // Keying the ErrorBoundary to currentRenderUrl forces a clean re-mount on every file upload
+        <ErrorBoundary key={currentRenderUrl} resetKey={currentRenderUrl}>
           <Canvas
-            gl={{ 
-              antialias: true, 
-              powerPreference: "high-performance",
-              toneMapping: THREE.NoToneMapping, 
-              outputColorSpace: THREE.SRGBColorSpace 
-            }}
+            gl={{ antialias: true, powerPreference: "high-performance" }}
             camera={{ fov: 45, near: 0.1, far: 100000 }} 
             dpr={[1, 2]}
-            className="w-full h-full outline-none"
           >
             <color attach="background" args={['#202531']} />
             <Sky sunPosition={[100, 10, 100]} turbidity={0.1} rayleigh={0.01} />
-            <ambientLight intensity={0.4} color="#ffffff" />
-            <directionalLight position={[10, 10, 5]} intensity={0.5} color="#ffffff" />
+            <ambientLight intensity={0.4} />
+            <directionalLight position={[10, 10, 5]} intensity={0.5} />
             
             <Suspense fallback={<Loader />}>
               <Bounds fit clip observe margin={1.2}>
@@ -58,24 +53,12 @@ export default function StageCanvas(): React.ReactElement {
               makeDefault 
               target={new THREE.Vector3(...cameraTarget)}
               enableDamping 
-              dampingFactor={0.05}
-              maxDistance={50000} 
-              minDistance={0.1}
             />
           </Canvas>
-
-          {/* Lighting/Disclaimer warning */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none z-10">
-            <div className="bg-slate-950/80 backdrop-blur-sm border border-amber-500/30 text-amber-500/80 px-4 py-2 rounded-md shadow-lg flex items-center gap-2 max-w-lg">
-              <span className="text-[10px] font-medium tracking-wide uppercase">
-                WARNING: Light, shadow, and shading may not appear as they do in your development due to individual project settings.
-              </span>
-            </div>
-          </div>
         </ErrorBoundary>
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-950 select-none">
-          <p className="text-xs font-semibold tracking-widest uppercase">Viewport Context Idle</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+          <p className="text-xs font-semibold tracking-widest uppercase">Idle</p>
         </div>
       )}
     </div>
