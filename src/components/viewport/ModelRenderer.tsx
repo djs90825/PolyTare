@@ -7,8 +7,12 @@ interface ModelRendererProps {
   url: string;
 }
 
-export default function ModelRenderer({ url }: ModelRendererProps): React.ReactElement {
-  const { scene } = useGLTF(url);
+export default function ModelRenderer({ url }: ModelRendererProps): React.ReactElement | null {
+  // Add an error boundary or handle loading state if needed.
+  // Standard GLTF loader is used here.
+  const gltf = useGLTF(url);
+  const scene = gltf?.scene;
+  
   const heatmapModeActive = useAppStore((state) => state.heatmapModeActive);
   const setCameraTarget = useAppStore((state) => state.setCameraTarget);
 
@@ -21,7 +25,6 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
     
     let foundHead = false;
     scene.traverse((node: Object3D) => {
-      // Find any node named 'head' (case insensitive)
       if (node.name.toLowerCase().includes('head')) {
         const headPos = new Vector3();
         node.getWorldPosition(headPos);
@@ -31,10 +34,11 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
     });
 
     if (!foundHead) {
-      setCameraTarget([0, 1.2, 0]); // Default to center-mass if no head
+      setCameraTarget([0, 1.2, 0]);
     }
   }, [scene, setCameraTarget]);
 
+  // Heatmap rendering logic
   useEffect(() => {
     if (!scene) return;
 
@@ -45,9 +49,7 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
         }
 
         if (heatmapModeActive) {
-          const geometry = object.geometry;
-          const vertexCount = geometry.attributes.position ? geometry.attributes.position.count : 0;
-          
+          const vertexCount = object.geometry.attributes.position?.count || 0;
           let diagnosticColour = '#10b981'; 
           if (vertexCount > 50000) diagnosticColour = '#ef4444'; 
           else if (vertexCount > 15000) diagnosticColour = '#f59e0b';
@@ -73,13 +75,8 @@ export default function ModelRenderer({ url }: ModelRendererProps): React.ReactE
     });
   }, [scene, heatmapModeActive]);
 
-  useEffect(() => {
-    return () => {
-      originalMaterialsMap.current.clear();
-      heatmapMaterialsMap.current.forEach((material) => material.dispose());
-      heatmapMaterialsMap.current.clear();
-    };
-  }, []);
+  // Guard clause: Return nothing if scene hasn't loaded
+  if (!scene) return null;
 
   return <primitive object={scene} />;
 }
